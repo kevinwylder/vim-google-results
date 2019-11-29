@@ -1,0 +1,17 @@
+{
+  "name": "vim-google-results",
+  "version": "1.0.0",
+  "description": "Add j/k bindings to google search results",
+  "scripts": {
+    "build": "npx webpack"
+  },
+  "author": "Kevin Wylder",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "ts-loader": "^6.2.1",
+    "typescript": "^3.7.2",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.10"
+  }
+}
