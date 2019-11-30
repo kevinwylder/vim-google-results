@@ -1,13 +1,29 @@
+import { Sidebar } from "./sidebar";
 
 function findSearchResults() : HTMLAnchorElement[] {
-    let results: HTMLAnchorElement[] = [];
-    for (let elem of document.getElementsByClassName("r")) {
-        let link = elem.getElementsByTagName("a");
-        if (link.length == 0) {
-            continue
-        }
-        results.push(link[0]);
+    let rows = document.querySelectorAll(".g");
+    if (!rows) {
+        return [];
     }
+    let results: HTMLAnchorElement[] = [];
+    let blacklist: Element[] = [];
+    rows.forEach((elem) => {
+        let hasAccordian = elem.querySelector("g-accordion-expander");
+        if (hasAccordian) {
+            blacklist.push(elem);
+            return;
+        }
+        for (let blacklisted of blacklist) {
+            if (blacklisted.contains(elem)) {
+                return;
+            };
+        }
+        let link = elem.querySelector("a")
+        if (!link) {
+            return;
+        }
+        results.push(link);
+    });
     return results;
 }
 
@@ -22,12 +38,21 @@ function findSearchBox() : HTMLElement {
 
 let results = findSearchResults();
 let searchBox = findSearchBox();
+let sidebar = new Sidebar(results);
 
 document.addEventListener("keypress", function(this: Document, event: KeyboardEvent) {
     switch (event.key) {
         case "j":
-        case "k":
-            console.log("key")
+            sidebar.down();
             event.preventDefault();
+            break;
+        case "k":
+            sidebar.up();
+            event.preventDefault();
+            break;
+        case "Enter":
+            sidebar.select()
+            event.preventDefault();
+            break;
     }
 });
