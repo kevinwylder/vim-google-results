@@ -104,9 +104,10 @@ export class Sidebar {
 
     select() {
         if (!this.selectedIdx) {
-            this.selectedIdx = 0;
+            return false;
         }
         this.notches[this.selectedIdx].click();
+        return true;
     }
 
 }

@@ -1,4 +1,4 @@
-import { Sidebar } from "./sidebar";
+import { vimSearchController } from './controller';
 
 function findSearchResults() : HTMLAnchorElement[] {
     let rows = document.querySelectorAll(".g");
@@ -27,32 +27,14 @@ function findSearchResults() : HTMLAnchorElement[] {
     return results;
 }
 
-function findSearchBox() : HTMLElement {
-    for (let elem of document.getElementsByTagName("input")) {
-        if (elem.getAttribute("type") === "text") {
-            return elem;
-        }
+function findSearchBox() : HTMLInputElement {
+    let elem = document.querySelector('input[type="text"]');
+    if (!elem) {
+        throw new Error("Could not find the search box");
     }
-    throw new Error("Could not find the search box");
+    return elem as HTMLInputElement;
 }
 
 let results = findSearchResults();
 let searchBox = findSearchBox();
-let sidebar = new Sidebar(results);
-
-document.addEventListener("keypress", function(this: Document, event: KeyboardEvent) {
-    switch (event.key) {
-        case "j":
-            sidebar.down();
-            event.preventDefault();
-            break;
-        case "k":
-            sidebar.up();
-            event.preventDefault();
-            break;
-        case "Enter":
-            sidebar.select()
-            event.preventDefault();
-            break;
-    }
-});
+vimSearchController(searchBox, results);
