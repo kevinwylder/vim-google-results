@@ -102,8 +102,8 @@ export class Sidebar {
         this.ctx.fill();
     }
 
-    select() {
-        if (!this.selectedIdx) {
+    select(): boolean{
+        if (this.selectedIdx === undefined) {
             return false;
         }
         this.notches[this.selectedIdx].click();

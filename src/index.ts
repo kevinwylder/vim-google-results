@@ -1,4 +1,4 @@
-import { vimSearchController } from './controller';
+import { vimSearchController } from './keymap';
 
 function findSearchResults() : HTMLAnchorElement[] {
     let rows = document.querySelectorAll(".g");

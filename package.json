@@ -3,13 +3,19 @@
   "version": "1.0.0",
   "description": "Add j/k bindings to google search results",
   "scripts": {
-    "build": "npx webpack"
+    "build": "npx webpack",
+    "test": "mocha -r ts-node/register src/*.spec.ts"
   },
   "author": "Kevin Wylder",
   "license": "ISC",
   "dependencies": {},
   "devDependencies": {
+    "@types/chai": "^4.2.5",
+    "@types/mocha": "^5.2.7",
+    "chai": "^4.2.0",
+    "mocha": "^6.2.2",
     "ts-loader": "^6.2.1",
+    "ts-node": "^8.5.4",
     "typescript": "^3.7.2",
     "webpack": "^4.41.2",
     "webpack-cli": "^3.3.10"

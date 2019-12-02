@@ -1,88 +1,198 @@
-
+import { reverse, findNextSpace, findNextWord } from './strings';
 
 export interface SingleLineVimBindings {
+    Escape: VimKeyFunction
 
-    position(): number // the index of the cursor
+    a: VimKeyFunction // (insert) append after this cursor
+    i: VimKeyFunction // (insert) at the current position
+    A: VimKeyFunction // (insert) append to the end of the textbox
+    I: VimKeyFunction // (insert) at the beginning of the line
+    C: VimKeyFunction // (insert) change from here to the end of the line
+    S: VimKeyFunction // (insert) substitute the whole line
 
-    a(): void // (insert) append after this cursor
-    i(): void // (insert) at the current position
-    A(): void // (insert) append to the end of the textbox
-    I(): void // (insert) at the beginning of the line
-    C(): void // (insert) change from here to the end of the line
-    S(): void // (insert) substitute the whole line
+    h: VimKeyFunction // (move) left 
+    l: VimKeyFunction // (move) right
+    b: VimKeyFunction // (move) back a word
+    e: VimKeyFunction // (move) to the end of the word
+    w: VimKeyFunction // (move) to the next character
+    "0": VimKeyFunction // move to the beginning of the line
+    "_": VimKeyFunction // move to the beginning of the line's text
+    "$": VimKeyFunction // move to the end of the line
 
+/*
+    f: VimKeyFunction // (move) to the next character
+    F: VimKeyFunction // (move) to backwards to the next character
+    t: VimKeyFunction // (move) the start of the next character
+    T: VimKeyFunction // (move) forwards to the next character
+    ";": VimKeyFunction // redo the last f/t search
+    ":": VimKeyFunction // reverse search the last f/t
+
+    d: VimKeyFunction // (movement sequence) delete the next 
+    c: VimKeyFunction // (insert) (movement sequence) change the next 
+
+    D: VimKeyFunction // delete from here to the end of the line
+    x: VimKeyFunction // delete the character under the cursor
+    */
+    Backspace: VimKeyFunction
     /*
-    h(): void // (move) left 
-    l(): void // (move) right
-    b(): void // (move) back a word
-    e(): void // (move) to the end of the word
-    w(): void // (move) to the next character
-    zero(): void // move to the beginning of the line
-    underscore(): void // move to the beginning of the line's text
-    dollar(): void // move to the end of the line
 
-    f(): void // (move) to the next character
-    F(): void // (move) to backwards to the next character
-    t(): void // (move) the start of the next character
-    T(): void // (move) forwards to the next character
-    semicolon(): void // redo the last f/t search
-    colon(): void // reverse search the last f/t
+    "1": VimKeyFunction // (repeat-count) execute the command this count times
+    "2": VimKeyFunction // (repeat-count) 
+    "3": VimKeyFunction // (repeat-count) 
+    "4": VimKeyFunction // (repeat-count) 
+    "5": VimKeyFunction // (repeat-count) 
+    "6": VimKeyFunction // (repeat-count) 
+    "7": VimKeyFunction // (repeat-count) 
+    "8": VimKeyFunction // (repeat-count) 
+    "9": VimKeyFunction // (repeat-count) 
 
-    d(): void // (movement sequence) delete the next 
-    c(): void // (insert) (movement sequence) change the next 
 
-    D(): void // delete from here to the end of the line
-    x(): void // delete the character under the cursor
+    R: VimKeyFunction // replace mode
+    r: VimKeyFunction // (insert?) replace the next character
+    "~": VimKeyFunction // flip the case of the character under the cursor
 
-    R(): void // replace mode
-    r(): void // (insert?) replace the next character
-    tilde(): void // flip the case of the character under the cursor
-
-    p(): void // paste the last deleted text
-    u(): void // undo the last change
+    p: VimKeyFunction // paste the last deleted text
+    u: VimKeyFunction // undo the last change
     */
 }
 
-export type SingleLineVimCallback = (isNormal: boolean, position: number, text: string) => any
+type SingleLineVimCallback = (text: string, position: number, isNormal: boolean) => any
+type VimKeyFunction = () => void;
+
 
 export class SingleLineVimBuffer implements SingleLineVimBindings {
+
+    [k: string]: any;
     
     private buffer: string;
-    private index: number;
+    private index: number = 0;
+    private normalMode: boolean = true;
     private callback: SingleLineVimCallback;
 
-    constructor(buffer: string, index: number, callback: SingleLineVimCallback) {
+    constructor(buffer: string, callback: SingleLineVimCallback) {
         this.buffer = buffer;
-        this.index = index;
         this.callback = callback;
     }
 
-    position = () => {
-        return this.index;
+    toString = () => {
+        return this.buffer;
+    }
+
+    isNormal = () => {
+        return this.normalMode;
+    }
+
+    insert = (key: string) => {
+        this.buffer = this.buffer.substr(0, this.index) + key + this.buffer.substr(this.index);
+        this.index++;
+        this.dispatch();
+    }
+
+    private dispatchStack: number = 0;
+    private preventDispatch = (count: number) => {
+        this.dispatchStack += count;
+    }
+    private dispatch = () => {
+        if (this.dispatchStack > 0) {
+            this.dispatchStack--;
+            return;
+        }
+        this.callback(this.buffer, this.index, this.normalMode);
+    }
+    
+    // reverse is useful for commands that share functionality
+    private reverse = () => {
+        this.buffer = reverse(this.buffer);
+        this.index = this.buffer.length - this.index;
+    }
+
+    Escape = () => {
+        this.normalMode = true;
+        this.dispatch();
     }
 
     a = () => {
-        this.callback(false, this.index + 1, this.buffer);
+        this.index++;
+        this.normalMode = false;
+        this.dispatch();
     }
 
     i = () => {
-        this.callback(false, this.index, this.buffer);
+        this.normalMode = false;
+        this.dispatch();
     }
 
     A = () => {
-        this.callback(false, this.buffer.length, this.buffer);
+        this.normalMode = false
+        this.index = this.buffer.length;
+        this.dispatch();
     }
 
     I = () => {
-        this.callback(false, 0, this.buffer);
+        this.index = 0;
+        this.normalMode = false;
+        this.dispatch();
     }
 
     C = () => {
-        this.callback(false, this.index, this.buffer.substr(this.index));
+        this.buffer = this.buffer.substr(0, this.index);
+        this.normalMode = false;
+        this.dispatch();
     }
 
     S = () => {
-        this.callback(false, 0, "");
+        this.buffer = "";
+        this.index = 0;
+        this.normalMode = false;
+        this.dispatch();
+    }
+
+    h = () => {
+        this.index = Math.max(0, this.index - 1);
+        this.dispatch();
+    }
+
+    l = () => {
+        this.index = Math.min(this.index + 1, this.buffer.length - 1);
+        this.dispatch();
+    }
+
+    b = () => {
+        this.reverse();
+        this.preventDispatch(1)
+        this.e()
+        this.reverse()
+        this.dispatch();
+    }
+
+    e = () => {
+        this.index += findNextSpace(this.buffer.substr(this.index + 2))
+        this.dispatch();
+    }
+
+    w = () => {
+        this.index += findNextWord(this.buffer.substr(this.index))
+        this.dispatch();
+    }
+
+    "0" = () => {
+        this.index = 0;
+        this.dispatch();
+    }
+
+    "_" = () => {
+        this["0"]();
+    }
+
+    "$" = () => {
+        this.index = this.buffer.length - 1
+        this.dispatch();
+    }
+
+    Backspace = () => {
+        this.buffer = this.buffer.substr(0, this.index - 1) + this.buffer.substr(this.index)
+        this.index--;
+        this.dispatch();
     }
 
 }

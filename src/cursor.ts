@@ -5,14 +5,15 @@ const BLINK_OFF: number = 180;
 export class Cursor {
 
     private text: string;
-    private canvas: HTMLCanvasElement;
+    private idx: number = 0;
+
+    public canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     private width: number;
     private height: number;
 
     private blinkShow: boolean = true;
     private normalMode: boolean = true;
-    private cursorIdx: number = 0;
     private blinkTimeout: number = 0;
 
     constructor(above: HTMLInputElement) {
@@ -39,80 +40,73 @@ export class Cursor {
         this.ctx = ctx;
         this.canvas.style.zIndex = "1000";
         document.body.appendChild(this.canvas);
-    }
 
-    // insert puts the cursor in insert mode.
-    insert = () => {
-        this.normalMode = false;
         this.blinkShow = false;
-        // clear the blink timeout
-        window.clearTimeout(this.blinkTimeout);
-        this.draw();
-    }
-
-    // normal puts the cursor in normal mode.
-    normal = () => {
-        this.normalMode = true;
-        this.blinkShow = true;
-        // reset the timeout
-        window.clearTimeout(this.blinkTimeout);
-        this.blinkTimeout = window.setTimeout(this.blink, BLINK_ON)
-        this.draw();
+        this.blink();
     }
 
     // at puts the cursor at the given position
-    set = (text: string, pos: number) => {
+    set = (text: string, idx: number, isNormal: boolean) => {
         this.text = text;
-        this.cursorIdx = pos;
+        this.idx = idx;
+        if (idx > text.length) {
+            this.idx = text.length;
+        } else if (idx < 0) {
+            this.idx = 0;
+        }
+        this.normalMode = isNormal;
 
         // reset the blink timeout
-        this.blinkShow = true;
         window.clearTimeout(this.blinkTimeout);
         this.blinkTimeout = window.setTimeout(this.blink, BLINK_ON)
-
-        this.draw();
+        this.blinkShow = false;
+        this.blink();
     }
 
     private draw = () => {
         this.ctx.fillStyle = 'white';
         this.ctx.fillRect(0, 0, this.width, this.height);
+        this.ctx.fillStyle = 'black';
+        this.ctx.imageSmoothingQuality = "high";
+        this.ctx.font = this.height * .5 + "px courier new";
+        this.ctx.fillText(this.text, 0, this.height * .7);
 
-        this.ctx.fillText()
-        if (!this.normalMode || !this.blinkShow) {
+        // get the text and index
+        let textBefore = this.text.substr(0, this.idx);
+        let highlighted = this.text.charAt(this.idx);
+
+        // set the context font and size
+        let offset = this.ctx.measureText(textBefore).width;
+        let width = this.ctx.measureText(highlighted).width;
+
+        if (!this.blinkShow) {
             return;
         }
 
-        // get the text and index
-        let text = this.text.value;
-        if (this.cursorIdx >= text.length) {
-            this.cursorIdx = text.length - 1;
-        } else if (this.cursorIdx < 0) {
-            this.cursorIdx = 0;
+        if (this.normalMode) {
+            // draw normal bar
+            this.ctx.fillStyle = '#33b5e5';
+            this.ctx.fillRect(offset, this.height * .25, width, this.height * .5);
+            this.ctx.fillStyle = 'white';
+            this.ctx.fillText(highlighted, offset, this.height * .7);
+        } else {
+            // draw insert bar
+            this.ctx.fillStyle = '#33b5e5';
+            this.ctx.fillRect(offset, this.height * .25, 3, this.height * .5);
         }
-        let idx = this.cursorIdx;
 
-        let textBefore = text.substr(0, idx);
-        let highlighted = text.charAt(idx);
-
-        // set the context font and size
-        this.ctx.font = this.text.style.font;
-        let offset = this.ctx.measureText(textBefore).width;
-        let width = this.ctx.measureText(highlighted).width;
-        console.log(width, offset);
-        this.ctx.fillRect(offset, this.height * .25, width, this.height * .5);
     }
 
     private blink = () => {
         this.blinkShow = !this.blinkShow;
         this.draw();
-        if (this.normalMode) {
-            window.clearTimeout(this.blinkTimeout);
-            if (this.blinkShow) {
-                this.blinkTimeout = window.setTimeout(this.blink, BLINK_ON);
-            } else {
-                this.blinkTimeout = window.setTimeout(this.blink, BLINK_OFF);
-            }
+        let old = this.blinkTimeout
+        if (this.blinkShow) {
+            this.blinkTimeout = window.setTimeout(this.blink, BLINK_ON);
+        } else {
+            this.blinkTimeout = window.setTimeout(this.blink, BLINK_OFF);
         }
+        window.clearTimeout(old);
     }
 
 }
