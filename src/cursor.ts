@@ -17,29 +17,33 @@ export class Cursor {
     private blinkTimeout: number = 0;
 
     constructor(above: HTMLInputElement) {
-        let { top, left } = above.getBoundingClientRect()
-        top += window.pageYOffset;
-        left += window.pageXOffset;
+        if (!above.parentElement) {
+            throw new Error("cannot position above root element");
+        }
+        let { top, left, width, height, zIndex } = window.getComputedStyle(above);
+        this.text = above.value;
 
         // position self above the text box
-        this.text = above.value;
         this.canvas = document.createElement("canvas");
-        this.canvas.setAttribute("width", "" + above.clientWidth);
-        this.canvas.setAttribute("height", "" + above.clientHeight);
-        this.canvas.style.width = above.clientWidth + "px";
-        this.canvas.style.height = above.clientHeight + "px";
-        this.width = above.clientWidth;
-        this.height = above.clientHeight;
         this.canvas.style.position = "absolute";
-        this.canvas.style.top = top + "px";
-        this.canvas.style.left = left + "px";
+        this.canvas.style.top = top;
+        this.canvas.style.left = left;
+
+        // make canvas 2x the css pixel size to prevent pixellation
+        this.canvas.style.width = width;
+        this.canvas.style.height = height;
+        this.width = above.clientWidth * 2;
+        this.height = above.clientHeight * 2;
+        this.canvas.setAttribute("width", "" + this.width);
+        this.canvas.setAttribute("height", "" + this.height);
+
         let ctx = this.canvas.getContext("2d");
         if (!ctx) {
             throw new Error("Browser doesn't support canvas 2d rendering");
         }
         this.ctx = ctx;
-        this.canvas.style.zIndex = "1000";
-        document.body.appendChild(this.canvas);
+        this.canvas.style.zIndex = ((zIndex) ? parseInt(zIndex) : 1000) + 1 + "";
+        above.parentElement.appendChild(this.canvas);
 
         this.blinkShow = false;
         this.blink();
@@ -65,10 +69,9 @@ export class Cursor {
 
     private draw = () => {
         this.ctx.fillStyle = 'white';
-        this.ctx.fillRect(0, 0, this.width, this.height);
-        this.ctx.fillStyle = 'black';
-        this.ctx.imageSmoothingQuality = "high";
-        this.ctx.font = this.height * .5 + "px courier new";
+        this.ctx.fillRect(0, 0, this.width, this.height * .9);
+        this.ctx.fillStyle = 'rgba(0,0,0,.87)';
+        this.ctx.font = this.height * .47 + "px arial,sans-serif";
         this.ctx.fillText(this.text, 0, this.height * .7);
 
         // get the text and index
@@ -87,21 +90,21 @@ export class Cursor {
                 // draw dollarsign
                 let width = this.ctx.measureText("$").width;
                 this.ctx.fillStyle = '#33b5e5';
-                this.ctx.fillRect(offset, this.height * .25, width, this.height * .5);
+                this.ctx.fillRect(offset, this.height * .2, width, this.height * .6);
                 this.ctx.fillStyle = 'white';
                 this.ctx.fillText("$", offset, this.height * .7);
             } else {
                 // draw normal bar
                 let width = this.ctx.measureText(highlighted).width;
                 this.ctx.fillStyle = '#33b5e5';
-                this.ctx.fillRect(offset, this.height * .25, width, this.height * .5);
+                this.ctx.fillRect(offset, this.height * .2, width, this.height * .6);
                 this.ctx.fillStyle = 'white';
                 this.ctx.fillText(highlighted, offset, this.height * .7);
             }
         } else {
             // draw insert bar
             this.ctx.fillStyle = '#33b5e5';
-            this.ctx.fillRect(offset, this.height * .25, 3, this.height * .5);
+            this.ctx.fillRect(offset, this.height * .2, 3, this.height * .6);
         }
 
     }

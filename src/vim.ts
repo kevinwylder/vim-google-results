@@ -94,6 +94,11 @@ export class SingleLineVimBuffer implements SingleLineVimBindings {
         this.dispatchStack += count;
     }
     private dispatch = () => {
+        if (this.index < 0) {
+            this.index = 0;
+        } else if (this.index > this.buffer.length) {
+            this.index = this.buffer.length;
+        }
         if (this.dispatchStack > 0) {
             this.dispatchStack--;
             return;
@@ -149,12 +154,12 @@ export class SingleLineVimBuffer implements SingleLineVimBindings {
     }
 
     h = () => {
-        this.index = Math.max(0, this.index - 1);
+        this.index--;
         this.dispatch();
     }
 
     l = () => {
-        this.index = Math.min(this.index + 1, this.buffer.length - 1);
+        this.index--;
         this.dispatch();
     }
 

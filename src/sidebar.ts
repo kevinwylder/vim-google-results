@@ -83,13 +83,17 @@ export class Sidebar {
     private draw() {
         this.ctx.clearRect(0, 0, this.width, this.height);
         if (this.selectedIdx === undefined) {
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth",
+            });
             return
         }
 
         let { top } = this.notches[this.selectedIdx].getBoundingClientRect();
         let y = top + window.pageYOffset - this.top;
         window.scrollTo({
-            top: y - 200,
+            top: top - 200 + window.pageYOffset,
             behavior: "smooth",
         });
 
