@@ -13,6 +13,7 @@ export interface SingleLineVimBindings {
     h: VimKeyFunction // (move) left 
     l: VimKeyFunction // (move) right
     b: VimKeyFunction // (move) back a word
+    B: VimKeyFunction // (move) back a word
     e: VimKeyFunction // (move) to the end of the word
     w: VimKeyFunction // (move) to the next character
     "0": VimKeyFunction // move to the beginning of the line
@@ -157,6 +158,7 @@ export class SingleLineVimBuffer implements SingleLineVimBindings {
         this.dispatch();
     }
 
+    B = () => { this.b(); }
     b = () => {
         this.reverse();
         this.preventDispatch(1)

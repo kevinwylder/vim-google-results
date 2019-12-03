@@ -40,6 +40,14 @@ describe("movement", () => {
         expect(index).to.eq(11);
     })
 
+    it('b', () => {
+        let index: number = 0;
+        let buffer = new SingleLineVimBuffer("this is text", (_: string, idx: number) => { index = idx});
+        buffer.$();
+        buffer.b();
+        expect(index).to.eq(8);
+    })
+
     it("l", () => {
         let index: number = 0;
         let buffer = new SingleLineVimBuffer("this is text", (_: string, idx: number) => { index = idx});

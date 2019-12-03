@@ -50,6 +50,11 @@ export function vimSearchController(searchbox: HTMLInputElement, results: HTMLEl
             return;
         }
 
+        if (event.getModifierState("Alt") || event.getModifierState("Control") || event.getModifierState("Meta")) {
+            // skip ctl, alt, and mod key combinations
+            return;
+        }
+
         if (buffer.isNormal()) {
             // map all the vim shortcuts to the vim buffer
             let func = buffer[event.key];
@@ -74,11 +79,6 @@ export function vimSearchController(searchbox: HTMLInputElement, results: HTMLEl
         // mapping for all keys that can be inserted in the buffer.
         if (event.location != 0) {
             // modifier keys are caught by this
-            return;
-        }
-
-        if (event.getModifierState("Alt") || event.getModifierState("Control") || event.getModifierState("Meta")) {
-            // skip ctl, alt, and mod key combinations
             return;
         }
 
