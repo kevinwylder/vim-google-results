@@ -4,6 +4,7 @@ const BLINK_OFF: number = 180;
 
 export class Cursor {
 
+    private font: string;
     private text: string;
     private idx: number = 0;
 
@@ -20,8 +21,9 @@ export class Cursor {
         if (!above.parentElement) {
             throw new Error("cannot position above root element");
         }
-        let { top, left, width, height, zIndex } = window.getComputedStyle(above);
+        let { top, left, width, height, zIndex, font } = window.getComputedStyle(above);
         this.text = above.value;
+        this.font = font;
 
         // position self above the text box
         this.canvas = document.createElement("canvas");
@@ -32,8 +34,8 @@ export class Cursor {
         // make canvas 2x the css pixel size to prevent pixellation
         this.canvas.style.width = width;
         this.canvas.style.height = height;
-        this.width = above.clientWidth * 2;
-        this.height = above.clientHeight * 2;
+        this.width = above.clientWidth;
+        this.height = above.clientHeight;
         this.canvas.setAttribute("width", "" + this.width);
         this.canvas.setAttribute("height", "" + this.height);
 
@@ -71,7 +73,7 @@ export class Cursor {
         this.ctx.fillStyle = 'white';
         this.ctx.fillRect(0, 0, this.width, this.height * .9);
         this.ctx.fillStyle = 'rgba(0,0,0,.87)';
-        this.ctx.font = this.height * .47 + "px arial,sans-serif";
+        this.ctx.font = this.font;
         this.ctx.fillText(this.text, 0, this.height * .7);
 
         // get the text and index
