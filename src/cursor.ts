@@ -77,18 +77,27 @@ export class Cursor {
 
         // set the context font and size
         let offset = this.ctx.measureText(textBefore).width;
-        let width = this.ctx.measureText(highlighted).width;
 
         if (!this.blinkShow) {
             return;
         }
 
         if (this.normalMode) {
-            // draw normal bar
-            this.ctx.fillStyle = '#33b5e5';
-            this.ctx.fillRect(offset, this.height * .25, width, this.height * .5);
-            this.ctx.fillStyle = 'white';
-            this.ctx.fillText(highlighted, offset, this.height * .7);
+            if (this.idx == this.text.length) {
+                // draw dollarsign
+                let width = this.ctx.measureText("$").width;
+                this.ctx.fillStyle = '#33b5e5';
+                this.ctx.fillRect(offset, this.height * .25, width, this.height * .5);
+                this.ctx.fillStyle = 'white';
+                this.ctx.fillText("$", offset, this.height * .7);
+            } else {
+                // draw normal bar
+                let width = this.ctx.measureText(highlighted).width;
+                this.ctx.fillStyle = '#33b5e5';
+                this.ctx.fillRect(offset, this.height * .25, width, this.height * .5);
+                this.ctx.fillStyle = 'white';
+                this.ctx.fillText(highlighted, offset, this.height * .7);
+            }
         } else {
             // draw insert bar
             this.ctx.fillStyle = '#33b5e5';

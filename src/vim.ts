@@ -1,4 +1,4 @@
-import { reverse, findNextSpace, findNextWord } from './strings';
+import { reverse, findWords } from './strings';
 
 export interface SingleLineVimBindings {
     Escape: VimKeyFunction
@@ -103,7 +103,7 @@ export class SingleLineVimBuffer implements SingleLineVimBindings {
     // reverse is useful for commands that share functionality
     private reverse = () => {
         this.buffer = reverse(this.buffer);
-        this.index = this.buffer.length - this.index;
+        this.index = this.buffer.length - this.index - 1;
     }
 
     Escape = () => {
@@ -166,12 +166,26 @@ export class SingleLineVimBuffer implements SingleLineVimBindings {
     }
 
     e = () => {
-        this.index += findNextSpace(this.buffer.substr(this.index + 2))
+        let words = findWords(this.buffer.substr(this.index + 1))
+        if (words.length == 0) {
+            this.index = this.buffer.length - 1;
+            this.dispatch();
+            return;
+        }
+        let { length, offset } = words[0];
+        this.index += offset + length;
         this.dispatch();
     }
 
     w = () => {
-        this.index += findNextWord(this.buffer.substr(this.index))
+        let words = findWords(this.buffer.substr(this.index));
+        if (words.length < 2) {
+            this.index = this.buffer.length - 1;
+            this.dispatch();
+            return
+        }
+        let { offset } = words[1];
+        this.index += offset;
         this.dispatch();
     }
 

@@ -6,18 +6,20 @@ export function reverse(text: string): string {
     return text[text.length - 1] + reverse(text.substr(0, text.length - 1));
 }
 
-export function findNextWord(text: string): number {
-    let idx = text.search(/\s+\S/);
-    if (idx == -1) {
-        return text.length;
-    }
-    return idx + text.substr(idx).search(/\S/);
-}
+const WORD_REGEX = /[a-zA-Z0-9]+|[`~!@#$%^&*()_\-=+\\|[\]{};:'",.<>\/?]+/;
+export function findWords(text: string): {length: number, offset: number}[] {
+    // as of 2019, there is no matchAll available
+    let result: {length: number, offset: number}[] = [];
+    let word = WORD_REGEX.exec(text);
+    let offset = 0;
+    while (word) {
+        let { index } = word;
+        let length = word[0].length;
 
-export function findNextSpace(text: string): number {
-    let idx = text.search(/\s/);
-    if (idx == -1) {
-        return text.length;
+        offset += index;
+        result.push({ length, offset });
+        offset += length;
+        word = WORD_REGEX.exec(text.substr(offset));
     }
-    return idx;
+    return result;
 }

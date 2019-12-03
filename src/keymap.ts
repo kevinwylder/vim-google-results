@@ -68,6 +68,7 @@ export function vimSearchController(searchbox: HTMLInputElement, results: HTMLEl
                 event.preventDefault();
                 return;
             }
+            return
         }
 
         // mapping for all keys that can be inserted in the buffer.
