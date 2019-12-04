@@ -30,15 +30,15 @@ export function vimSearchController(searchbox: HTMLInputElement, results: HTMLEl
 
         switch (event.key) {
         case "ArrowLeft":
-            buffer.h();
+            buffer.key.h();
             event.preventDefault();
             return;
         case "ArrowRight":
-            buffer.l();
+            buffer.key.l();
             event.preventDefault();
             return
         case "Escape":
-            buffer.Escape();
+            buffer.key.Escape();
             event.preventDefault();
             return;
         case "Enter":
@@ -55,44 +55,45 @@ export function vimSearchController(searchbox: HTMLInputElement, results: HTMLEl
             return;
         }
 
-        if (buffer.isNormal()) {
-            // map all the vim shortcuts to the vim buffer
-            let func = buffer[event.key];
-            if (typeof func === "function") {
-                func();
-                event.preventDefault();
+        if (buffer.isInsert()) {
+            // mapping for all keys that can be inserted in the buffer.
+            if (event.location != 0) {
+                // modifier keys are caught by this
                 return;
             }
-            switch (event.key) {
-            case "j":
-                sidebar.down();
-                event.preventDefault();
-                return;
-            case "k":
-                sidebar.up();
-                event.preventDefault();
-                return;
-            }
-            return
-        }
 
-        // mapping for all keys that can be inserted in the buffer.
-        if (event.location != 0) {
-            // modifier keys are caught by this
+            event.preventDefault();
+            if (event.key.length > 1) {
+                // some non-character keys are still sent here. we handle them "better"
+                switch (event.key) {
+                case "Backspace":
+                    buffer.key.Backspace();
+                    return;
+                }
+                return
+            } 
+
+            buffer.insert(event.key)
             return;
         }
 
-        event.preventDefault();
-        if (event.key.length > 1) {
-            // some non-character keys are still sent here. we handle them "better"
-            switch (event.key) {
-            case "Backspace":
-                buffer.Backspace();
-                return;
-            }
-            return
-        } 
+        // map all the vim shortcuts to the vim buffer
+        let func = buffer.key[event.key];
+        if (typeof func === "function") {
+            func();
+            event.preventDefault();
+            return;
+        }
+        switch (event.key) {
+        case "j":
+            sidebar.down();
+            event.preventDefault();
+            return;
+        case "k":
+            sidebar.up();
+            event.preventDefault();
+            return;
+        }
 
-        buffer.insert(event.key)
     };
 }

@@ -30,8 +30,6 @@ export class Cursor {
         this.canvas.style.position = "absolute";
         this.canvas.style.top = top;
         this.canvas.style.left = left;
-
-        // make canvas 2x the css pixel size to prevent pixellation
         this.canvas.style.width = width;
         this.canvas.style.height = height;
         this.width = above.clientWidth;
@@ -106,7 +104,7 @@ export class Cursor {
         } else {
             // draw insert bar
             this.ctx.fillStyle = '#33b5e5';
-            this.ctx.fillRect(offset, this.height * .2, 3, this.height * .6);
+            this.ctx.fillRect(offset, this.height * .2, 2, this.height * .6);
         }
 
     }

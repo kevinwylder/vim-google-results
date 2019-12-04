@@ -1,86 +1,88 @@
 import { reverse, findWords } from './strings';
 
-export interface SingleLineVimBindings {
-    Escape: VimKeyFunction
+type VimKey = () => void;
 
-    a: VimKeyFunction // (insert) append after this cursor
-    i: VimKeyFunction // (insert) at the current position
-    A: VimKeyFunction // (insert) append to the end of the textbox
-    I: VimKeyFunction // (insert) at the beginning of the line
-    C: VimKeyFunction // (insert) change from here to the end of the line
-    S: VimKeyFunction // (insert) substitute the whole line
+type SingleLineVimBindings = {
+    [key: string]: VimKey
 
-    h: VimKeyFunction // (move) left 
-    l: VimKeyFunction // (move) right
-    b: VimKeyFunction // (move) back a word
-    B: VimKeyFunction // (move) back a word
-    e: VimKeyFunction // (move) to the end of the word
-    w: VimKeyFunction // (move) to the next character
-    "0": VimKeyFunction // move to the beginning of the line
-    "_": VimKeyFunction // move to the beginning of the line's text
-    "$": VimKeyFunction // move to the end of the line
+    Escape: VimKey
 
-/*
-    f: VimKeyFunction // (move) to the next character
-    F: VimKeyFunction // (move) to backwards to the next character
-    t: VimKeyFunction // (move) the start of the next character
-    T: VimKeyFunction // (move) forwards to the next character
-    ";": VimKeyFunction // redo the last f/t search
-    ":": VimKeyFunction // reverse search the last f/t
+    a: VimKey // (insert) append after this cursor
+    i: VimKey // (insert) at the current position
+    A: VimKey // (insert) append to the end of the textbox
+    I: VimKey // (insert) at the beginning of the line
+    C: VimKey // (insert) change from here to the end of the line
+    S: VimKey // (insert) substitute the whole line
 
-    d: VimKeyFunction // (movement sequence) delete the next 
-    c: VimKeyFunction // (insert) (movement sequence) change the next 
+    h: VimKey // (move) left 
+    l: VimKey // (move) right
+    b: VimKey // (move) back a word
+    B: VimKey // (move) back a word
+    e: VimKey // (move) to the end of the word
+    w: VimKey // (move) to the next character
+    "0": VimKey // move to the beginning of the line
+    "_": VimKey // move to the beginning of the line's text
+    "$": VimKey // move to the end of the line
+    "%": VimKey // move to the matching {}, [], or ()
 
-    D: VimKeyFunction // delete from here to the end of the line
-    x: VimKeyFunction // delete the character under the cursor
-    */
-    Backspace: VimKeyFunction
-    /*
+    f: VimKey // (move) to the next character
+    F: VimKey // (move) to backwards to the next character
+    t: VimKey // (move) the start of the next character
+    T: VimKey // (move) forwards to the next character
+    ";": VimKey // redo the last f/t search
+    ",": VimKey // reverse the search direction
 
-    "1": VimKeyFunction // (repeat-count) execute the command this count times
-    "2": VimKeyFunction // (repeat-count) 
-    "3": VimKeyFunction // (repeat-count) 
-    "4": VimKeyFunction // (repeat-count) 
-    "5": VimKeyFunction // (repeat-count) 
-    "6": VimKeyFunction // (repeat-count) 
-    "7": VimKeyFunction // (repeat-count) 
-    "8": VimKeyFunction // (repeat-count) 
-    "9": VimKeyFunction // (repeat-count) 
+    d: VimKey // (movement sequence) delete the next 
+    c: VimKey // (insert) (movement sequence) change the next 
+    y: VimKey // copy the next sequence into the register
 
+    D: VimKey // delete from here to the end of the line
+    x: VimKey // delete the character under the cursor
+    Backspace: VimKey
 
-    R: VimKeyFunction // replace mode
-    r: VimKeyFunction // (insert?) replace the next character
-    "~": VimKeyFunction // flip the case of the character under the cursor
+    "1": VimKey // (repeat-count) execute the command this count times
+    "2": VimKey // (repeat-count) 
+    "3": VimKey // (repeat-count) 
+    "4": VimKey // (repeat-count) 
+    "5": VimKey // (repeat-count) 
+    "6": VimKey // (repeat-count) 
+    "7": VimKey // (repeat-count) 
+    "8": VimKey // (repeat-count) 
+    "9": VimKey // (repeat-count) 
 
-    p: VimKeyFunction // paste the last deleted text
-    u: VimKeyFunction // undo the last change
-    */
+    R: VimKey // replace mode
+    r: VimKey // (insert?) replace the next character
+    "~": VimKey // flip the case of the character under the cursor
+
+    p: VimKey // paste the last deleted text or register
+    u: VimKey // undo the last change
+    ".": VimKey // redo the last search
 }
 
-type SingleLineVimCallback = (text: string, position: number, isNormal: boolean) => any
-type VimKeyFunction = () => void;
+type SingleLineVimCursorCallback = (text: string, position: number, isCursorFat: boolean) => any
 
+enum Mode {
+    Normal,
+    Insert,
+    Replace,
+}
 
-export class SingleLineVimBuffer implements SingleLineVimBindings {
+export class SingleLineVimBuffer {
 
-    [k: string]: any;
-    
-    private buffer: string;
-    private index: number = 0;
-    private normalMode: boolean = true;
-    private callback: SingleLineVimCallback;
+    private mode: Mode = Mode.Normal;
 
-    constructor(buffer: string, callback: SingleLineVimCallback) {
-        this.buffer = buffer;
-        this.callback = callback;
+    constructor(
+        public buffer: string, 
+        public callback: SingleLineVimCursorCallback, 
+        public index: number = 0) {
     }
 
     toString = () => {
         return this.buffer;
     }
 
-    isNormal = () => {
-        return this.normalMode;
+    isInsert = () => {
+        return this.mode == Mode.Insert;
     }
 
     insert = (key: string) => {
@@ -89,6 +91,11 @@ export class SingleLineVimBuffer implements SingleLineVimBindings {
         this.dispatch();
     }
 
+    /**
+     * Dispatch is an indication that the UI should update the cursor via the callback.
+     * If a command has a planned number of keystrokes, then they should call preventDispatch
+     * beforehand so that the ui doesn't re-update for each command
+     */
     private dispatchStack: number = 0;
     private preventDispatch = (count: number) => {
         this.dispatchStack += count;
@@ -103,117 +110,160 @@ export class SingleLineVimBuffer implements SingleLineVimBindings {
             this.dispatchStack--;
             return;
         }
-        this.callback(this.buffer, this.index, this.normalMode);
+        this.callback(this.buffer, this.index, this.mode != Mode.Insert);
     }
     
-    // reverse is useful for commands that share functionality
+    // reverse is useful for commands that share functionality in opposite directions
     private reverse = () => {
         this.buffer = reverse(this.buffer);
         this.index = this.buffer.length - this.index - 1;
     }
 
-    Escape = () => {
-        this.normalMode = true;
-        this.dispatch();
-    }
+    // below are keymappings that share context via closure
+    public key: SingleLineVimBindings = {
 
-    a = () => {
-        this.index++;
-        this.normalMode = false;
-        this.dispatch();
-    }
-
-    i = () => {
-        this.normalMode = false;
-        this.dispatch();
-    }
-
-    A = () => {
-        this.normalMode = false
-        this.index = this.buffer.length;
-        this.dispatch();
-    }
-
-    I = () => {
-        this.index = 0;
-        this.normalMode = false;
-        this.dispatch();
-    }
-
-    C = () => {
-        this.buffer = this.buffer.substr(0, this.index);
-        this.normalMode = false;
-        this.dispatch();
-    }
-
-    S = () => {
-        this.buffer = "";
-        this.index = 0;
-        this.normalMode = false;
-        this.dispatch();
-    }
-
-    h = () => {
-        this.index--;
-        this.dispatch();
-    }
-
-    l = () => {
-        this.index--;
-        this.dispatch();
-    }
-
-    B = () => { this.b(); }
-    b = () => {
-        this.reverse();
-        this.preventDispatch(1)
-        this.e()
-        this.reverse()
-        this.dispatch();
-    }
-
-    e = () => {
-        let words = findWords(this.buffer.substr(this.index + 1))
-        if (words.length == 0) {
-            this.index = this.buffer.length - 1;
+        Escape: () => {
+            this.mode = Mode.Normal;
             this.dispatch();
-            return;
-        }
-        let { length, offset } = words[0];
-        this.index += offset + length;
-        this.dispatch();
-    }
+        },
 
-    w = () => {
-        let words = findWords(this.buffer.substr(this.index));
-        if (words.length < 2) {
-            this.index = this.buffer.length - 1;
+        a: () => {
+            this.index++;
+            this.mode = Mode.Insert;
             this.dispatch();
-            return
-        }
-        let { offset } = words[1];
-        this.index += offset;
-        this.dispatch();
-    }
+        },
 
-    "0" = () => {
-        this.index = 0;
-        this.dispatch();
-    }
+        i: () => {
+            this.mode = Mode.Insert;
+            this.dispatch();
+        },
 
-    "_" = () => {
-        this["0"]();
-    }
+        A: () => {
+            this.mode = Mode.Insert
+            this.index = this.buffer.length;
+            this.dispatch();
+        },
 
-    "$" = () => {
-        this.index = this.buffer.length - 1
-        this.dispatch();
-    }
+        I: () => {
+            this.index = 0;
+            this.mode = Mode.Insert;
+            this.dispatch();
+        },
 
-    Backspace = () => {
-        this.buffer = this.buffer.substr(0, this.index - 1) + this.buffer.substr(this.index)
-        this.index--;
-        this.dispatch();
+        C: () => {
+            this.buffer = this.buffer.substr(0, this.index);
+            this.mode = Mode.Insert;
+            this.dispatch();
+        },
+
+        S: () => {
+            this.buffer = "";
+            this.index = 0;
+            this.mode = Mode.Insert;
+            this.dispatch();
+        },
+
+        h: () => {
+            this.index--;
+            this.dispatch();
+        },
+
+        l: () => {
+            this.index++;
+            this.dispatch();
+        },
+
+        B: () => { this.key.b(); },
+        b: () => {
+            this.reverse();
+            this.preventDispatch(1)
+            this.key.e()
+            this.reverse()
+            this.dispatch();
+        },
+
+        e: () => {
+            let words = findWords(this.buffer.substr(this.index + 1))
+            if (words.length == 0) {
+                this.index = this.buffer.length - 1;
+                this.dispatch();
+                return;
+            }
+            let { length, offset } = words[0];
+            this.index += offset + length;
+            this.dispatch();
+        },
+
+        w: () => {
+            let words = findWords(this.buffer.substr(this.index));
+            if (words.length < 2) {
+                this.index = this.buffer.length - 1;
+                this.dispatch();
+                return
+            }
+            let { offset } = words[1];
+            this.index += offset;
+            this.dispatch();
+        },
+
+        "0": () => {
+            this.index = 0;
+            this.dispatch();
+        },
+
+        "_": () => {
+            this.key["0"]();
+        },
+
+        "$": () => {
+            this.index = this.buffer.length - 1
+            this.dispatch();
+        },
+        
+        "%": () => { },
+
+        f: () => {},
+        F: () => {},
+        t: () => {},
+        T: () => {},
+        ";": () => {},
+        ",": () => {},
+
+        d: () => {},
+        c: () => {},
+        y: () => {},
+
+        D: () => {
+            this.buffer = this.buffer.substr(0, this.index);
+            this.index--;
+            this.dispatch();
+        },
+        x: () => {},
+        Backspace: () => {
+            this.buffer = this.buffer.substr(0, this.index - 1) + this.buffer.substr(this.index)
+            this.index--;
+            this.dispatch();
+        },
+
+        "1": () => {},
+        "2": () => {},
+        "3": () => {},
+        "4": () => {},
+        "5": () => {},
+        "6": () => {},
+        "7": () => {},
+        "8": () => {},
+        "9": () => {},
+
+
+        R: () => {},
+        r: () => {},
+        "~": () => {},
+
+        p: () => {},
+        u: () => {},
+        ".": () => {},
+
     }
 
 }
