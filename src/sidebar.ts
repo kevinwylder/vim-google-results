@@ -77,7 +77,12 @@ export class Sidebar {
         } else {
             return
         }
-        this.draw()
+        this.draw();
+    }
+
+    toTop() {
+        this.selectedIdx = undefined;
+        this.draw();
     }
 
     private draw() {

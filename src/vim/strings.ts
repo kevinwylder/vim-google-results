@@ -23,3 +23,16 @@ export function findWords(text: string): {length: number, offset: number}[] {
     }
     return result;
 }
+
+
+const LOWERCASE = /[a-z]/
+const UPPERCASE = /[A-Z]/
+export function swapCase(input: string): string {
+    if (UPPERCASE.test(input)) {
+        return input.toLowerCase();
+    }
+    if (LOWERCASE.test(input)) {
+        return input.toUpperCase();
+    }
+    return input;
+} 

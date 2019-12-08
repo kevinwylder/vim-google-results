@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { SingleLineVimBuffer } from './vim';
+import { SingleLineVimBuffer } from '.';
 
 describe("movement", () => {
 
@@ -71,8 +71,9 @@ describe("movement", () => {
         let index: number = 0;
         let vim = new SingleLineVimBuffer("this is text", (_: string, idx: number) => { index = idx}, 2);
         vim.key.f();
-        expect(vim.isInsert());
-        vim.insert("t");
+        expect(vim.nextCharacterIsLiteral());
+        vim.literal("t");
+        expect(!vim.nextCharacterIsLiteral());
         expect(index).to.eq(8)
         vim.key[';']();
         expect(index).to.eq(11);
@@ -86,11 +87,11 @@ describe("movement", () => {
         let index: number = 0;
         let vim = new SingleLineVimBuffer("t*is *s text", (_: string, idx: number) => { index = idx}, 7);
         vim.key.F();
-        expect(vim.isInsert());
-        vim.insert("*");
+        expect(vim.nextCharacterIsLiteral());
+        vim.literal("*");
         expect(index).to.eq(5)
         vim.key[';']();
-        expect(index).to.eq(2);
+        expect(index).to.eq(1);
         vim.key[',']();
         expect(index).to.eq(5)
         vim.key[';']();
@@ -101,8 +102,8 @@ describe("movement", () => {
         let index: number = 0;
         let vim = new SingleLineVimBuffer("this is text", (_: string, idx: number) => { index = idx}, 2);
         vim.key.t();
-        expect(vim.isInsert());
-        vim.insert("t");
+        expect(vim.nextCharacterIsLiteral());
+        vim.literal("t");
         expect(index).to.eq(7)
         vim.key[';']();
         expect(index).to.eq(10);
@@ -116,72 +117,72 @@ describe("movement", () => {
         let index: number = 0;
         let vim = new SingleLineVimBuffer("t*is *s text", (_: string, idx: number) => { index = idx}, 7);
         vim.key.T();
-        expect(vim.isInsert());
-        vim.insert("*");
+        expect(vim.nextCharacterIsLiteral());
+        vim.literal("*");
         expect(index).to.eq(6)
         vim.key[';']();
-        expect(index).to.eq(3);
+        expect(index).to.eq(2);
         vim.key[',']();
-        expect(index).to.eq(5)
+        expect(index).to.eq(4)
         vim.key[';']();
-        expect(index).to.eq(5)
+        expect(index).to.eq(4)
     })
 })
 
 describe("insert", () => {
 
     it("A", () => {
-        let vim = new SingleLineVimBuffer("this is text", () => {});
+        let vim = new SingleLineVimBuffer("this is text");
         vim.key.A();
-        expect(vim.isInsert()).to.be.true;
-        vim.insert(" more");
+        expect(vim.nextCharacterIsLiteral()).to.be.true;
+        vim.literal(" more");
         expect(vim.toString()).to.eq("this is text more");
     })
 
     it("a", () => {
-        let vim = new SingleLineVimBuffer("this is text", () => {});
+        let vim = new SingleLineVimBuffer("this is text");
         vim.key.a();
-        expect(vim.isInsert()).to.be.true;
-        vim.insert(" more");
+        expect(vim.nextCharacterIsLiteral()).to.be.true;
+        vim.literal(" more");
         expect(vim.toString()).to.eq("t morehis is text");
     });
 
     it("i", () => {
         let vim = new SingleLineVimBuffer("this is text", () => {}, 11);
         vim.key.i();
-        expect(vim.isInsert()).to.be.true;
-        vim.insert(" more");
+        expect(vim.nextCharacterIsLiteral()).to.be.true;
+        vim.literal(" more");
         expect(vim.toString()).to.eq("this is tex moret");
     });
 
     it("I", () => {
         let vim = new SingleLineVimBuffer("this is text", () => {}, 11);
         vim.key.I();
-        expect(vim.isInsert()).to.be.true;
-        vim.insert("more ");
+        expect(vim.nextCharacterIsLiteral()).to.be.true;
+        vim.literal("more ");
         expect(vim.toString()).to.eq("more this is text");
     });
 
     it("S", () => {
         let vim = new SingleLineVimBuffer("this is text", () => {}, 11);
         vim.key.S();
-        expect(vim.isInsert()).to.be.true;
-        vim.insert("more ");
+        expect(vim.nextCharacterIsLiteral()).to.be.true;
+        vim.literal("more ");
         expect(vim.toString()).to.eq("more ");
     });
 
     it("C", () => {
         let vim = new SingleLineVimBuffer("this is text", () => {}, 2);
         vim.key.C();
-        expect(vim.isInsert()).to.be.true;
-        vim.insert("more ");
+        expect(vim.nextCharacterIsLiteral()).to.be.true;
+        vim.literal("more ");
         expect(vim.toString()).to.eq("thmore ");
     });
 });
 
 describe("delete", () => {
     it("Backspace", () => {
-        let vim = new SingleLineVimBuffer("this is text", () => {});
+        let vim = new SingleLineVimBuffer("this is text");
         vim.key.A();
         vim.key.Backspace()
         expect(vim.toString()).to.eq("this is tex");
@@ -191,7 +192,7 @@ describe("delete", () => {
         let index = 5;
         let vim = new SingleLineVimBuffer("this is text", (_, i) => {index = i}, 5);
         vim.key.D();
-        expect(vim.isInsert()).to.be.false;
+        expect(vim.nextCharacterIsLiteral()).to.be.false;
         expect(vim.toString()).to.eq("this ");
         expect(index).to.eq(4);
     });
@@ -207,19 +208,19 @@ describe("delete", () => {
 
 describe("replace", () => {
     it("r", () => {
-        let vim = new SingleLineVimBuffer("this is text", () => {});
+        let vim = new SingleLineVimBuffer("this is text");
         vim.key.r();
-        expect(vim.isInsert())
-        vim.insert("H")
-        expect(vim.toString()).to.eq("Hhat is text");
+        expect(vim.nextCharacterIsLiteral())
+        vim.literal("H")
+        expect(vim.toString()).to.eq("Hhis is text");
     })
 
     it("R", () => {
-        let vim = new SingleLineVimBuffer("this is text", () => {});
+        let vim = new SingleLineVimBuffer("this is text");
         vim.key.R();
-        expect(vim.isInsert())
-        vim.insert("HeLLo")
-        vim.insert("  WORLD")
+        expect(vim.nextCharacterIsLiteral())
+        vim.literal("HeLLo")
+        vim.literal("  WORLD")
         expect(vim.toString()).to.eq("HeLLo  WORLD");
     })
 
@@ -235,4 +236,46 @@ describe("replace", () => {
         expect(vim.buffer.toString()).to.eq("Th1s is text")
         expect(index).to.eq(3);
     });
+})
+
+describe("delete/change movement", () => {
+    it("dw", () => {
+        let vim = new SingleLineVimBuffer("the cow")
+        vim.key.d();
+        vim.key.w();
+        expect(vim.toString()).to.eq("cow");
+        expect(vim.nextCharacterIsLiteral()).to.be.false;
+    });
+
+    it("ce == cw", () => {
+        let vim = new SingleLineVimBuffer("the cow")
+        vim.key.c();
+        vim.key.e();
+        expect(vim.toString()).to.eq("cow ");
+        expect(vim.nextCharacterIsLiteral()).to.be.false;
+        vim = new SingleLineVimBuffer("the cow")
+        vim.key.c();
+        vim.key.w();
+        expect(vim.toString()).to.eq("cow ");
+        expect(vim.nextCharacterIsLiteral()).to.be.false;
+    });
+
+    it("dfo", () => {
+        let vim = new SingleLineVimBuffer("the cow")
+        vim.key.d();
+        vim.key.f();
+        vim.literal("o");
+        expect(vim.toString()).to.eq("w");
+    })
+
+    it("d;", () => {
+        let vim = new SingleLineVimBuffer("the cow")
+        vim.key.f();
+        vim.literal("o");
+        vim.key._();
+
+        vim.key.d();
+        vim.key[';']();
+        expect(vim.toString()).to.eq("w");
+    })
 })

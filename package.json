@@ -4,7 +4,7 @@
   "description": "Add j/k bindings to google search results",
   "scripts": {
     "build": "npx webpack",
-    "test": "mocha -r ts-node/register src/*.spec.ts"
+    "test": "mocha -r ts-node/register src/**/*.spec.ts"
   },
   "author": "Kevin Wylder",
   "license": "ISC",

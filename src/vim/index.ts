@@ -1,4 +1,5 @@
-import { reverse, findWords } from './strings';
+import { reverse, findWords, swapCase } from './strings';
+import { FindContext } from './find';
 
 type VimKey = () => void;
 
@@ -65,15 +66,18 @@ enum Mode {
     Normal,
     Insert,
     Replace,
+    FindNextChar,
+    ReplaceNextChar,
 }
 
 export class SingleLineVimBuffer {
 
     private mode: Mode = Mode.Normal;
+    private findContext = new FindContext();
 
     constructor(
         public buffer: string, 
-        public callback: SingleLineVimCursorCallback, 
+        public callback: SingleLineVimCursorCallback = () => {}, 
         public index: number = 0) {
     }
 
@@ -81,36 +85,58 @@ export class SingleLineVimBuffer {
         return this.buffer;
     }
 
-    isInsert = () => {
-        return this.mode == Mode.Insert;
+    nextCharacterIsLiteral = () => {
+        return  this.mode == Mode.Insert || 
+                this.mode == Mode.FindNextChar || 
+                this.mode == Mode.ReplaceNextChar;
     }
 
-    insert = (key: string) => {
-        this.buffer = this.buffer.substr(0, this.index) + key + this.buffer.substr(this.index);
-        this.index++;
+    literal = (key: string) => {
+        switch(this.mode) {
+        case Mode.FindNextChar:
+            this.findContext.searchTerm = key;
+            this.mode = Mode.Normal;
+            this.key[";"]();
+            break;
+        
+        case Mode.ReplaceNextChar:
+            this.buffer = this.buffer.substr(0, this.index) + key + this.buffer.substr(this.index + key.length);
+            this.mode = Mode.Normal
+            break;
+
+        case Mode.Replace:
+            this.buffer = this.buffer.substr(0, this.index) + key + this.buffer.substr(this.index + key.length);
+            this.index += key.length;
+            break;
+
+        default:
+            this.buffer = this.buffer.substr(0, this.index) + key + this.buffer.substr(this.index);
+            this.index += key.length;
+            break;
+        }
         this.dispatch();
-    }
+}
 
-    /**
-     * Dispatch is an indication that the UI should update the cursor via the callback.
-     * If a command has a planned number of keystrokes, then they should call preventDispatch
-     * beforehand so that the ui doesn't re-update for each command
-     */
-    private dispatchStack: number = 0;
-    private preventDispatch = (count: number) => {
-        this.dispatchStack += count;
+/**
+ * Dispatch is an indication that the UI should update the cursor via the callback.
+ * If a command has a planned number of keystrokes, then they should call preventDispatch
+ * beforehand so that the ui doesn't re-update for each command
+ */
+private dispatchStack: number = 0;
+private preventDispatch = (count: number) => {
+    this.dispatchStack += count;
+}
+private dispatch = () => {
+    if (this.index < 0) {
+        this.index = 0;
+    } else if (this.index > this.buffer.length) {
+        this.index = this.buffer.length;
     }
-    private dispatch = () => {
-        if (this.index < 0) {
-            this.index = 0;
-        } else if (this.index > this.buffer.length) {
-            this.index = this.buffer.length;
-        }
-        if (this.dispatchStack > 0) {
-            this.dispatchStack--;
-            return;
-        }
-        this.callback(this.buffer, this.index, this.mode != Mode.Insert);
+    if (this.dispatchStack > 0) {
+        this.dispatchStack--;
+        return;
+    }
+    this.callback(this.buffer, this.index, this.mode != Mode.Insert);
     }
     
     // reverse is useful for commands that share functionality in opposite directions
@@ -222,12 +248,39 @@ export class SingleLineVimBuffer {
         
         "%": () => { },
 
-        f: () => {},
-        F: () => {},
-        t: () => {},
-        T: () => {},
-        ";": () => {},
-        ",": () => {},
+        f: () => {
+            this.mode = Mode.FindNextChar;
+            this.findContext.includeInSearch = true;
+            this.findContext.isForwardSearch = true;
+        },
+
+        F: () => {
+            this.mode = Mode.FindNextChar;
+            this.findContext.includeInSearch = true;
+            this.findContext.isForwardSearch = false;
+        },
+
+        t: () => {
+            this.mode = Mode.FindNextChar;
+            this.findContext.includeInSearch = false;
+            this.findContext.isForwardSearch = true;
+        },
+
+        T: () => {
+            this.mode = Mode.FindNextChar;
+            this.findContext.includeInSearch = false;
+            this.findContext.isForwardSearch = false;
+        },
+
+        ";": () => {
+            this.index += this.findContext.go(this.buffer, this.index);
+            this.dispatch();
+        },
+
+        ",": () => {
+            this.findContext.isForwardSearch = !this.findContext.isForwardSearch
+            this.key[";"]();
+        },
 
         d: () => {},
         c: () => {},
@@ -238,9 +291,12 @@ export class SingleLineVimBuffer {
             this.index--;
             this.dispatch();
         },
-        x: () => {},
+        x: () => {
+            this.buffer = this.buffer.substr(0, this.index) + this.buffer.substr(this.index + 1);
+            this.dispatch();
+        },
         Backspace: () => {
-            this.buffer = this.buffer.substr(0, this.index - 1) + this.buffer.substr(this.index)
+            this.buffer = this.buffer.substr(0, this.index - 1) + this.buffer.substr(this.index);
             this.index--;
             this.dispatch();
         },
@@ -256,9 +312,19 @@ export class SingleLineVimBuffer {
         "9": () => {},
 
 
-        R: () => {},
-        r: () => {},
-        "~": () => {},
+        R: () => {
+            this.mode = Mode.Replace;
+        },
+
+        r: () => {
+            this.mode = Mode.ReplaceNextChar;
+        },
+
+        "~": () => {
+            this.buffer = this.buffer.substr(0, this.index) + swapCase(this.buffer[this.index]) + this.buffer.substr(this.index + 1);
+            this.index++;
+            this.dispatch();
+        },
 
         p: () => {},
         u: () => {},

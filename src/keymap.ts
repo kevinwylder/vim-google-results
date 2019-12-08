@@ -55,7 +55,7 @@ export function vimSearchController(searchbox: HTMLInputElement, results: HTMLEl
             return;
         }
 
-        if (buffer.isInsert()) {
+        if (buffer.nextCharacterIsLiteral()) {
             // mapping for all keys that can be inserted in the buffer.
             if (event.location != 0) {
                 // modifier keys are caught by this
@@ -73,7 +73,7 @@ export function vimSearchController(searchbox: HTMLInputElement, results: HTMLEl
                 return
             } 
 
-            buffer.insert(event.key)
+            buffer.literal(event.key)
             return;
         }
 
@@ -85,6 +85,9 @@ export function vimSearchController(searchbox: HTMLInputElement, results: HTMLEl
             return;
         }
         switch (event.key) {
+        case "g":
+            sidebar.toTop();
+            event.preventDefault();
         case "j":
             sidebar.down();
             event.preventDefault();
